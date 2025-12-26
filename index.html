@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Royal Sherwani System</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#050505">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon.png">
+
+    <style>
+        :root {
+            --gold: #d4af37;
+            --gold-dim: #8a7020;
+            --black: #050505;
+            --surface: #121214;
+            --text: #ffffff;
+            --danger: #ff4444;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-color: var(--black);
+            background-image: radial-gradient(circle at center, #1a1a1e 0%, #000 100%);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            user-select: none; -webkit-user-select: none;
+        }
+
+        header {
+            padding: 20px 25px;
+            background: rgba(18, 18, 20, 0.9);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+        .brand { font-size: 1.4rem; font-weight: 800; letter-spacing: 1px; color: #fff; }
+        .brand span { color: var(--gold); }
+        .badge { font-size: 0.75rem; background: #222; color: var(--gold); padding: 5px 12px; border-radius: 20px; border: 1px solid #444; font-weight: 600; }
+
+        #appGrid {
+            flex: 1;
+            padding: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            gap: 25px;
+            overflow-y: auto;
+            align-content: start;
+        }
+
+        .app-item {
+            display: flex; flex-direction: column; align-items: center; gap: 12px;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+        }
+        @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        .app-icon {
+            width: 72px; height: 72px;
+            background: linear-gradient(145deg, #1e1e24, #121214);
+            border-radius: 18px;
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid #333;
+            box-shadow: 0 10px 15px rgba(0,0,0,0.3);
+            transition: transform 0.2s, border-color 0.2s;
+            overflow: hidden;
+        }
+        .app-item:active .app-icon { transform: scale(0.92); border-color: var(--gold); }
+        .app-icon img { width: 100%; height: 100%; object-fit: cover; }
+        .app-icon svg { width: 32px; height: 32px; fill: var(--gold); }
+        .app-name { font-size: 0.85rem; color: #ccc; font-weight: 500; text-align: center; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .fab {
+            position: fixed; bottom: 40px; right: 30px;
+            width: 65px; height: 65px;
+            background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 10px 25px rgba(212, 175, 55, 0.3);
+            z-index: 50; cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .fab:active { transform: scale(0.9); }
+        .fab svg { width: 32px; height: 32px; fill: #000; }
+
+        .modal-bg {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+            backdrop-filter: blur(8px); display: none;
+            justify-content: center; align-items: center; z-index: 2000;
+        }
+        .modal {
+            background: var(--surface); width: 90%; max-width: 380px;
+            border-radius: 24px; padding: 25px; border: 1px solid #333;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.7);
+        }
+        .modal h2 { color: var(--gold); margin-bottom: 20px; font-size: 1.3rem; text-align: center; }
+
+        input[type="text"] {
+            width: 100%; padding: 15px; background: #08080a; border: 1px solid #333;
+            border-radius: 12px; color: #fff; margin-bottom: 20px; outline: none; text-align: center; font-size: 1.1rem;
+            -webkit-user-select: text;
+        }
+        
+        .btn-group { display: flex; gap: 10px; }
+        .btn { flex: 1; padding: 14px; border-radius: 12px; font-weight: 700; border: none; cursor: pointer; font-size: 1rem; }
+        .btn-primary { background: var(--gold); color: #000; }
+        .btn-sec { background: #222; color: #888; }
+
+        #pinDisplay {
+            width: 100%; height: 50px; margin-bottom: 20px;
+            display: flex; justify-content: center; align-items: center; gap: 10px;
+        }
+        .pin-dot { width: 12px; height: 12px; border-radius: 50%; background: #333; transition: 0.2s; }
+        .pin-dot.active { background: var(--gold); box-shadow: 0 0 10px var(--gold); }
+        .pin-dot.error { background: var(--danger); }
+
+        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; width: 100%; }
+        .key {
+            height: 60px; background: #1a1a1e; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; color: #fff; font-weight: 500;
+            border: 1px solid #333; transition: 0.1s;
+        }
+        .key:active { background: var(--gold); color: #000; border-color: var(--gold); }
+        .key-del { color: var(--danger); font-size: 1rem; background: transparent; border: none; }
+
+        .sheet {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background: #161619; border-radius: 30px 30px 0 0; padding: 10px 20px 30px 20px;
+            transform: translateY(110%); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            z-index: 3000; border-top: 2px solid var(--gold);
+        }
+        .sheet.active { transform: translateY(0); }
+        
+        .sheet-item {
+            padding: 18px; display: flex; align-items: center; gap: 20px;
+            color: #fff; font-weight: 600; border-bottom: 1px solid #222;
+        }
+        .sheet-item:active { background: #222; }
+        .sheet-item svg { width: 24px; height: 24px; fill: #888; }
+        .sheet-item.danger { color: var(--danger); border: none; }
+        .sheet-item.danger svg { fill: var(--danger); }
+
+        .file-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px; background: #08080a; margin-bottom: 8px; border-radius: 10px; border: 1px solid #222;
+        }
+        .file-del-btn { padding: 8px; color: var(--danger); background: rgba(255,68,68,0.1); border-radius: 8px; }
+
+        #toast {
+            position: fixed; top: 30px; left: 50%; transform: translateX(-50%);
+            background: var(--gold); color: #000; padding: 10px 25px;
+            border-radius: 30px; font-weight: 700; opacity: 0; pointer-events: none; z-index: 9999;
+        }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+    <header>
+        <div class="brand">ROYAL <span>SHERWANI</span></div>
+        <div class="badge">V-4.0 SECURE</div>
+    </header>
+
+    <div id="appGrid"></div>
+
+    <div class="fab" id="mainPlus">
+        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+    </div>
+
+    <div class="modal-bg" id="modalPin">
+        <div class="modal">
+            <h2>Security Access</h2>
+            <div id="pinDisplay">
+                <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+                <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+            </div>
+            <div class="keypad">
+                <div class="key" onclick="pressKey(1)">1</div><div class="key" onclick="pressKey(2)">2</div><div class="key" onclick="pressKey(3)">3</div>
+                <div class="key" onclick="pressKey(4)">4</div><div class="key" onclick="pressKey(5)">5</div><div class="key" onclick="pressKey(6)">6</div>
+                <div class="key" onclick="pressKey(7)">7</div><div class="key" onclick="pressKey(8)">8</div><div class="key" onclick="pressKey(9)">9</div>
+                <div class="key key-del" onclick="closePin()">CANCEL</div>
+                <div class="key" onclick="pressKey(0)">0</div>
+                <div class="key key-del" onclick="clearKey()"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-3 12.59L17.59 17 14 13.41 10.41 17 9 15.59 12.59 12 9 8.41 10.41 7 14 10.59 17.59 7 19 8.41 15.41 12 19 15.59z"/></svg></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-bg" id="modalCreate">
+        <div class="modal">
+            <h2>New Application</h2>
+            <input type="text" id="appNameInput" placeholder="Enter Name">
+            <div class="btn-group">
+                <button class="btn btn-sec" onclick="hide('modalCreate')">Cancel</button>
+                <button class="btn btn-primary" id="btnConfirmCreate">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-bg" id="modalUpload">
+        <div class="modal">
+            <h2>System Import</h2>
+            <p style="color:#888; margin-bottom:15px; text-align:center; font-size:0.9rem;">Select HTML, CSS, JS & Images</p>
+            <input type="file" id="filePicker" multiple style="display:none" onchange="processUpload()">
+            <button class="btn btn-primary" onclick="document.getElementById('filePicker').click()" style="width:100%">Select Files</button>
+            <button class="btn btn-sec" onclick="hide('modalUpload')" style="width:100%; margin-top:10px;">Close</button>
+        </div>
+    </div>
+
+    <div class="modal-bg" id="modalView">
+        <div class="modal">
+            <h2>App Files</h2>
+            <div id="fileListContainer" style="max-height:250px; overflow:auto; margin-bottom:15px;"></div>
+            <button class="btn btn-primary" onclick="hide('modalView')" style="width:100%">Close</button>
+        </div>
+    </div>
+
+    <div class="modal-bg" id="sheetOverlay" onclick="closeSheet()"></div>
+    <div class="sheet" id="adminSheet">
+        <div style="text-align:center; color:var(--gold); margin-bottom:20px; font-weight:bold; letter-spacing:1px;">ADMIN CONTROL</div>
+        <div class="sheet-item" onclick="triggerIconChange()"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg> Edit App Image</div>
+        <div class="sheet-item" onclick="triggerUploadModal()"><svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg> Upload Files</div>
+        <div class="sheet-item" onclick="triggerViewModal()"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg> View Files</div>
+        <div class="sheet-item danger" onclick="triggerUninstall()"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg> Uninstall App</div>
+    </div>
+
+    <input type="file" id="iconPicker" accept="image/*" style="display:none">
+    <div id="toast"></div>
+
+    <script>
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('SW Registered'))
+                .catch(err => console.log('SW Error', err));
+        }
+
+        const MASTER_PIN = "55639990";
+        const DB_NAME = 'RoyalSherwani_V4';
+        let db, currentAppId = null, pinBuffer = "", postPinAction = null;
+
+        const init = () => {
+            const req = indexedDB.open(DB_NAME, 1);
+            req.onupgradeneeded = e => {
+                const d = e.target.result;
+                d.createObjectStore('apps', { keyPath: 'id', autoIncrement: true });
+                d.createObjectStore('files', { keyPath: 'id', autoIncrement: true }).createIndex('appId', 'appId');
+            };
+            req.onsuccess = e => { db = e.target.result; renderApps(); };
+        };
+
+        const show = id => document.getElementById(id).style.display = 'flex';
+        const hide = id => document.getElementById(id).style.display = 'none';
+        const vibrate = (ms) => { if(navigator.vibrate) navigator.vibrate(ms); };
+        const toast = t => {
+            const el = document.getElementById('toast');
+            el.innerText = t; el.style.opacity = 1;
+            setTimeout(() => el.style.opacity = 0, 2000);
+        };
+
+        const requestPin = (callback) => { pinBuffer = ""; postPinAction = callback; updatePinUI(); show('modalPin'); };
+        const pressKey = (num) => { vibrate(30); if(pinBuffer.length < 8) { pinBuffer += num; updatePinUI(); if(pinBuffer.length === 8) checkPin(); } };
+        const clearKey = () => { vibrate(30); pinBuffer = pinBuffer.slice(0, -1); updatePinUI(); };
+        const closePin = () => { hide('modalPin'); pinBuffer = ""; };
+        const updatePinUI = () => { document.querySelectorAll('.pin-dot').forEach((dot, i) => dot.className = i < pinBuffer.length ? 'pin-dot active' : 'pin-dot'); };
+        const checkPin = () => {
+            if(pinBuffer === MASTER_PIN) { vibrate([50, 50, 50]); hide('modalPin'); if(postPinAction) postPinAction(); } 
+            else { vibrate(400); document.querySelectorAll('.pin-dot').forEach(d => d.classList.add('error')); setTimeout(() => { pinBuffer = ""; updatePinUI(); }, 400); }
+        };
+
+        document.getElementById('mainPlus').onclick = () => requestPin(() => show('modalCreate'));
+        document.getElementById('btnConfirmCreate').onclick = () => {
+            const name = document.getElementById('appNameInput').value;
+            if(!name) return;
+            const tx = db.transaction('apps', 'readwrite');
+            tx.objectStore('apps').add({ name, icon: null });
+            tx.oncomplete = () => { hide('modalCreate'); renderApps(); toast('App Established'); };
+        };
+
+        const renderApps = () => {
+            const grid = document.getElementById('appGrid');
+            grid.innerHTML = '';
+            db.transaction('apps').objectStore('apps').getAll().onsuccess = e => {
+                e.target.result.forEach(app => {
+                    const el = document.createElement('div');
+                    el.className = 'app-item';
+                    let iconHtml = `<svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`;
+                    if(app.icon) { iconHtml = `<img src="${URL.createObjectURL(app.icon)}">`; }
+                    el.innerHTML = `<div class="app-icon">${iconHtml}</div><div class="app-name">${app.name}</div>`;
+                    let pressTimer;
+                    el.ontouchstart = () => { pressTimer = setTimeout(() => { vibrate(100); currentAppId = app.id; requestPin(openSheet); }, 600); };
+                    el.ontouchend = () => clearTimeout(pressTimer);
+                    el.onclick = () => { if(!document.getElementById('sheetOverlay').style.display || document.getElementById('sheetOverlay').style.display === 'none') launch(app.id); };
+                    grid.appendChild(el);
+                });
+            };
+        };
+
+        const openSheet = () => { document.getElementById('sheetOverlay').style.display = 'block'; setTimeout(() => document.getElementById('adminSheet').classList.add('active'), 10); };
+        const closeSheet = () => { document.getElementById('adminSheet').classList.remove('active'); setTimeout(() => document.getElementById('sheetOverlay').style.display = 'none', 300); };
+        const triggerIconChange = () => { closeSheet(); document.getElementById('iconPicker').click(); };
+        document.getElementById('iconPicker').onchange = (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+            const tx = db.transaction('apps', 'readwrite');
+            tx.objectStore('apps').openCursor(IDBKeyRange.only(currentAppId)).onsuccess = ev => {
+                const cursor = ev.target.result; if(cursor) { const update = cursor.value; update.icon = file; cursor.update(update); }
+            };
+            tx.oncomplete = () => { renderApps(); toast('Icon Updated'); };
+        };
+        const triggerUploadModal = () => { closeSheet(); show('modalUpload'); };
+        const processUpload = async () => {
+            const files = document.getElementById('filePicker').files;
+            if(!files.length) return;
+            toast('Uploading...');
+            const fileData = [];
+            for (let f of files) { const buff = await f.arrayBuffer(); fileData.push({ appId: currentAppId, name: f.name, type: f.type, data: buff }); }
+            const tx = db.transaction('files', 'readwrite');
+            fileData.forEach(item => tx.objectStore('files').add(item));
+            tx.oncomplete = () => { hide('modalUpload'); toast('Stored Locally'); document.getElementById('filePicker').value = ''; };
+        };
+        const triggerViewModal = () => {
+            closeSheet(); const list = document.getElementById('fileListContainer'); list.innerHTML = 'Scanning...'; show('modalView');
+            db.transaction('files').objectStore('files').index('appId').getAll(currentAppId).onsuccess = e => {
+                list.innerHTML = '';
+                e.target.result.forEach(f => {
+                    const row = document.createElement('div'); row.className = 'file-row';
+                    row.innerHTML = `<span style="color:#ddd; font-size:0.9rem">${f.name}</span><div class="file-del-btn" onclick="deleteFile(${f.id})"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></div>`;
+                    list.appendChild(row);
+                });
+            };
+        };
+        const deleteFile = (id) => { if(!confirm('Delete?')) return; const tx = db.transaction('files', 'readwrite'); tx.objectStore('files').delete(id); tx.oncomplete = () => { toast('Deleted'); hide('modalView'); setTimeout(triggerViewModal, 300); }; };
+        const triggerUninstall = () => {
+            if(!confirm('Delete App?')) return;
+            const tx = db.transaction(['apps', 'files'], 'readwrite'); tx.objectStore('apps').delete(currentAppId);
+            const index = tx.objectStore('files').index('appId'); index.openCursor(IDBKeyRange.only(currentAppId)).onsuccess = e => { const c = e.target.result; if(c) { c.delete(); c.continue(); } };
+            closeSheet(); tx.oncomplete = () => { renderApps(); toast('Removed'); };
+        };
+        async function launch(id) {
+            toast('Launching...');
+            db.transaction('files').objectStore('files').index('appId').getAll(id).onsuccess = async e => {
+                const files = e.target.result;
+                const index = files.find(f => f.name.toLowerCase() === 'index.html');
+                if(!index) return alert('index.html not found!');
+                let rawHtml = new TextDecoder().decode(index.data);
+                const decoder = new TextDecoder();
+                const cssMatches = rawHtml.match(/<link[^>]+href=["']([^"']+)["'][^>]*>/gi) || [];
+                cssMatches.forEach(tag => { const href = tag.match(/href=["']([^"']+)["']/i)[1]; const f = files.find(file => file.name === href); if(f) rawHtml = rawHtml.replace(tag, `<style>${decoder.decode(f.data)}</style>`); });
+                const jsMatches = rawHtml.match(/<script[^>]+src=["']([^"']+)["'][^>]*><\/script>/gi) || [];
+                jsMatches.forEach(tag => {
+                    const src = tag.match(/src=["']([^"']+)["']/i)[1]; const f = files.find(file => file.name === src);
+                    if(f) { const closeTag = String.fromCharCode(60, 47, 115, 99, 114, 105, 112, 116, 62); rawHtml = rawHtml.replace(tag, `<script>${decoder.decode(f.data)}${closeTag}`); }
+                });
+                const imgMatches = rawHtml.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi) || [];
+                imgMatches.forEach(tag => { const src = tag.match(/src=["']([^"']+)["']/i)[1]; const f = files.find(file => file.name === src); if(f) rawHtml = rawHtml.replace(src, URL.createObjectURL(new Blob([f.data], {type: f.type}))); });
+                window.location.href = URL.createObjectURL(new Blob([rawHtml], { type: 'text/html' }));
+            };
+        }
+        init();
+    </script>
+</body>
+</html>
